@@ -39,16 +39,18 @@ services:
           memory: 64M
 
   cadvisor:
-    image: google/cadvisor
+    image: gcr.io/cadvisor/cadvisor:latest
     networks:
       - net
     command: -logtostderr -docker_only
     volumes:
-      - /var/run/docker.sock:/var/run/docker.sock:ro
       - /:/rootfs:ro
-      - /var/run:/var/run
+      - /var/run:/var/run:ro
       - /sys:/sys:ro
       - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    devices:
+      - /dev/kmsg
     deploy:
       mode: global
       resources:
