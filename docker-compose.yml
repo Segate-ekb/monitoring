@@ -27,6 +27,8 @@ configs:
     file: ./grafana/dashboards/swarmprom-services-dash.json
   grafana_node_dashboard:
     file: ./grafana/dashboards/swarmprom-nodes-dash.json
+  dashboard:
+    file: ./grafana/dashboards.yml
       
 
 services:
@@ -89,7 +91,9 @@ services:
       - source: grafana_service_dashboard
         target:  /etc/grafana/dashboards/swarmprom-services-dash.json 
       - source: grafana_node_dashboard
-        target:  /etc/grafana/dashboards/swarmprom-nodes-dash.json     
+        target:  /etc/grafana/dashboards/swarmprom-nodes-dash.json  
+      - source: dashboards
+        target: /etc/grafana/provisioning/dashboards/dashboards.yml     
     deploy:
       mode: replicated
       replicas: 1
