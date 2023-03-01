@@ -125,8 +125,7 @@ services:
   #     replicas: 1
 
   node-exporter:
-    # image: seg/node-exporter
-    build: ./node-exporter
+    image: stefanprodan/swarmprom-node-exporter
     networks:
       - net
     environment:
