@@ -19,6 +19,8 @@ configs:
     file: ./prometheus/rules/swarm_node.rules.yml
   task_rules:
     file: ./prometheus/rules/swarm_task.rules.yml
+  prometheus:
+    file: ./prometheus/conf/prometheus.yml  
 
 services:
   dockerd-exporter:
@@ -158,17 +160,19 @@ services:
     volumes:
       - prometheus:/prometheus
     configs:
-      - source: node_rules
-        target: /etc/prometheus/swarm_node.rules.yml
-      - source: task_rules
-        target: /etc/prometheus/swarm_task.rules.yml
+      # - source: node_rules
+      #   target: /etc/prometheus/swarm_node.rules.yml
+      # - source: task_rules
+      #   target: /etc/prometheus/swarm_task.rules.yml
+      - source:
+        target: /etc/prometheus/prometheus.yml 
     deploy:
       mode: replicated
       replicas: 1
       placement:
         constraints:
         # Если на менеджере нет достаточного количества ресурсов - предлагаю разместить на воркерах
-          - node.role == worker
+          - node.role == manager
       resources:
         limits:
           memory: 2048M
