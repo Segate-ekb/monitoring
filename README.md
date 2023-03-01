@@ -1,141 +1,48 @@
-# swarmprom
+# Мониторинг
 
-Swarmprom is a starter kit for Docker Swarm monitoring with [Prometheus](https://prometheus.io/),
+Это старт-кит для использования систем мониторинга в кластере docker-swarm [Prometheus](https://prometheus.io/),
 [Grafana](http://grafana.org/),
 [cAdvisor](https://github.com/google/cadvisor),
 [Node Exporter](https://github.com/prometheus/node_exporter),
 [Alert Manager](https://github.com/prometheus/alertmanager)
 and [Unsee](https://github.com/cloudflare/unsee).
 
-## Install
+## Быстрый старт
 
-Clone this repository and run the monitoring stack:
+Клонируем этот репозиторий
 
 ```bash
-$ git clone https://github.com/stefanprodan/swarmprom.git
-$ cd swarmprom
-
+$ git clone https://github.com/Segate-ekb/monitoring.git
+$ cd monitoring
 ADMIN_USER=admin \
 ADMIN_PASSWORD=admin \
-SLACK_URL=https://hooks.slack.com/services/TOKEN \
-SLACK_CHANNEL=devops-alerts \
-SLACK_USER=alertmanager \
-docker stack deploy -c docker-compose.yml mon
+docker stack deploy -c docker-compose.yml monitoring
 ```
 
-Prerequisites:
+Требования:
 
 * Docker CE 17.09.0-ce or Docker EE 17.06.2-ee-3
-* Swarm cluster with one manager and a worker node
-* Docker engine experimental enabled and metrics address set to `0.0.0.0:9323`
+* Swarm-кластер с минимум одним менеджером и воркером
+* Необходимо добавить следующий код в /etc/docker/daemon.json на всех нодах
 
-Services:
-
-* prometheus (metrics database) `http://<swarm-ip>:9090`
-* grafana (visualize metrics) `http://<swarm-ip>:3000`
-* node-exporter (host metrics collector)
-* cadvisor (containers metrics collector)
-* dockerd-exporter (Docker daemon metrics collector, requires Docker experimental metrics-addr to be enabled)
-* alertmanager (alerts dispatcher) `http://<swarm-ip>:9093`
-* unsee (alert manager dashboard) `http://<swarm-ip>:9094`
-* caddy (reverse proxy and basic auth provider for prometheus, alertmanager and unsee)
-
-
-## Alternative install with Traefik and HTTPS
-
-If you have a Docker Swarm cluster with a global Traefik set up as described in [DockerSwarm.rocks](https://dockerswarm.rocks), you can deploy Swarmprom integrated with that global Traefik proxy.
-
-This way, each Swarmprom service will have its own domain, and each of them will be served using HTTPS, with certificates generated (and renewed) automatically.
-
-### Requisites
-
-These instructions assume you already have Traefik set up following that guide above, in short:
-
-* With automatic HTTPS certificate generation.
-* A Docker Swarm network `traefik-public`.
-* Filtering to only serve containers with a label `traefik.constraint-label=traefik-public`.
-
-### Instructions
-
-* Clone this repository and enter into the directory:
-
-```bash
-$ git clone https://github.com/stefanprodan/swarmprom.git
-$ cd swarmprom
+```json
+{
+  "metrics-addr" : "0.0.0.0:9323",
+  "experimental" : true
+}
 ```
 
-* Set and export an `ADMIN_USER` environment variable:
+Список сервисов:
 
-```bash
-export ADMIN_USER=admin
-```
-
-* Set and export an `ADMIN_PASSWORD` environment variable:
-
-
-```bash
-export ADMIN_PASSWORD=changethis
-```
-
-* Set and export a hashed version of the `ADMIN_PASSWORD` using `openssl`, it will be used by Traefik's HTTP Basic Auth for most of the services:
-
-```bash
-export HASHED_PASSWORD=$(openssl passwd -apr1 $ADMIN_PASSWORD)
-```
-
-* You can check the contents with:
-
-```bash
-echo $HASHED_PASSWORD
-```
-
-it will look like:
-
-```
-$apr1$89eqM5Ro$CxaFELthUKV21DpI3UTQO.
-```
-
-* Create and export an environment variable `DOMAIN`, e.g.:
-
-```bash
-export DOMAIN=example.com
-```
-
-and make sure that the following sub-domains point to your Docker Swarm cluster IPs:
-
-* `grafana.example.com`
-* `alertmanager.example.com`
-* `unsee.example.com`
-* `prometheus.example.com`
-
-(and replace `example.com` with your actual domain).
-
-**Note**: You can also use a subdomain, like `swarmprom.example.com`. Just make sure that the subdomains point to (at least one of) your cluster IPs. Or set up a wildcard subdomain (`*`).
-
-* If you are using Slack and want to integrate it, set the following environment variables:
-
-```bash
-export SLACK_URL=https://hooks.slack.com/services/TOKEN
-export SLACK_CHANNEL=devops-alerts
-export SLACK_USER=alertmanager
-```
-
-**Note**: by using `export` when declaring all the environment variables above, the next command will be able to use them.
-
-* Deploy the Traefik version of the stack:
+* prometheus `http://<swarm-ip>:9090`
+* grafana `http://<swarm-ip>:3000`
+* node-exporter
+* cadvisor
+* dockerd-exporter
+* caddy
 
 
-```bash
-docker stack deploy -c docker-compose.traefik.yml swarmprom
-```
-
-To test it, go to each URL:
-
-* `https://grafana.example.com`
-* `https://alertmanager.example.com`
-* `https://unsee.example.com`
-* `https://prometheus.example.com`
-
+<!-TODO-!>Надо доперевести доку!
 
 ## Setup Grafana
 
@@ -349,202 +256,3 @@ Replace 172.18.0.1 with your docker_gwbridge address in the compose file:
     environment:
       - DOCKER_GWBRIDGE_IP=172.18.0.1
 ```
-
-Collecting Docker Swarm metrics with Prometheus is not a smooth process, and
-because of `group_left` queries tend to become more complex.
-In the future I hope Swarm DNS will contain the SRV record for hostname and Docker engine
-metrics will expose container metrics replacing cAdvisor all together.
-
-## Configure Prometheus
-
-I've set the Prometheus retention period to 24h, you can change these values in the
-compose file or using the env variable `PROMETHEUS_RETENTION`.
-
-```yaml
-  prometheus:
-    image: stefanprodan/swarmprom-prometheus
-    command:
-      - '-storage.tsdb.retention=24h'
-    deploy:
-      resources:
-        limits:
-          memory: 2048M
-        reservations:
-          memory: 1024M
-```
-
-When using host volumes you should ensure that Prometheus doesn't get scheduled on different nodes. You can
-pin the Prometheus service on a specific host with placement constraints.
-
-```yaml
-  prometheus:
-    image: stefanprodan/swarmprom-prometheus
-    volumes:
-      - prometheus:/prometheus
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.labels.monitoring.role == prometheus
-```
-
-## Configure alerting
-
-The Prometheus swarmprom comes with the following alert rules:
-
-***Swarm Node CPU Usage***
-
-Alerts when a node CPU usage goes over 80% for five minutes.
-
-```
-ALERT node_cpu_usage
-  IF 100 - (avg(irate(node_cpu{mode="idle"}[1m])  * on(instance) group_left(node_name) node_meta * 100) by (node_name)) > 80
-  FOR 5m
-  LABELS      { severity="warning" }
-  ANNOTATIONS {
-      summary = "CPU alert for Swarm node '{{ $labels.node_name }}'",
-      description = "Swarm node {{ $labels.node_name }} CPU usage is at {{ humanize $value}}%.",
-  }
-```
-***Swarm Node Memory Alert***
-
-Alerts when a node memory usage goes over 80% for five minutes.
-
-```
-ALERT node_memory_usage
-  IF sum(((node_memory_MemTotal - node_memory_MemAvailable) / node_memory_MemTotal) * on(instance) group_left(node_name) node_meta * 100) by (node_name) > 80
-  FOR 5m
-  LABELS      { severity="warning" }
-  ANNOTATIONS {
-      summary = "Memory alert for Swarm node '{{ $labels.node_name }}'",
-      description = "Swarm node {{ $labels.node_name }} memory usage is at {{ humanize $value}}%.",
-  }
-```
-***Swarm Node Disk Alert***
-
-Alerts when a node storage usage goes over 85% for five minutes.
-
-```
-ALERT node_disk_usage
-  IF ((node_filesystem_size{mountpoint="/rootfs"} - node_filesystem_free{mountpoint="/rootfs"}) * 100 / node_filesystem_size{mountpoint="/rootfs"}) * on(instance) group_left(node_name) node_meta > 85
-  FOR 5m
-  LABELS      { severity="warning" }
-  ANNOTATIONS {
-      summary = "Disk alert for Swarm node '{{ $labels.node_name }}'",
-      description = "Swarm node {{ $labels.node_name }} disk usage is at {{ humanize $value}}%.",
-  }
-```
-
-***Swarm Node Disk Fill Rate Alert***
-
-Alerts when a node storage is going to remain out of free space in six hours.
-
-```
-ALERT node_disk_fill_rate_6h
-  IF predict_linear(node_filesystem_free{mountpoint="/rootfs"}[1h], 6*3600) * on(instance) group_left(node_name) node_meta < 0
-  FOR 1h
-  LABELS      { severity="critical" }
-  ANNOTATIONS {
-      summary = "Disk fill alert for Swarm node '{{ $labels.node_name }}'",
-      description = "Swarm node {{ $labels.node_name }} disk is going to fill up in 6h.",
-  }
-```
-
-You can add alerts to
-[swarm_node](https://github.com/stefanprodan/swarmprom/blob/master/prometheus/rules/swarm_node.rules)
-and [swarm_task](https://github.com/stefanprodan/swarmprom/blob/master/prometheus/rules/swarm_task.rules)
-files and rerun stack deploy to update them. Because these files are mounted inside the Prometheus
-container at run time as [Docker configs](https://docs.docker.com/engine/swarm/configs/)
-you don't have to bundle them with the image.
-
-The Alertmanager swarmprom image is configured with the Slack receiver.
-In order to receive alerts on Slack you have to provide the Slack API url,
-username and channel via environment variables:
-
-```yaml
-  alertmanager:
-    image: stefanprodan/swarmprom-alertmanager
-    environment:
-      - SLACK_URL=${SLACK_URL}
-      - SLACK_CHANNEL=${SLACK_CHANNEL}
-      - SLACK_USER=${SLACK_USER}
-```
-
-You can install the `stress` package with apt and test out the CPU alert, you should receive something like this:
-
-![Alerts](https://raw.githubusercontent.com/stefanprodan/swarmprom/master/grafana/screens/alertmanager-slack-v2.png)
-
-Cloudflare has made a great dashboard for managing alerts.
-Unsee can aggregate alerts from multiple Alertmanager instances, running either in HA mode or separate.
-You can access unsee at `http://<swarm-ip>:9094` using the admin user/password set via compose up:
-
-![Unsee](https://raw.githubusercontent.com/stefanprodan/swarmprom/master/grafana/screens/unsee.png)
-
-## Monitoring applications and backend services
-
-You can extend swarmprom with special-purpose exporters for services like MongoDB, PostgreSQL, Kafka,
-Redis and also instrument your own applications using the Prometheus client libraries.
-
-In order to scrape other services you need to attach those to the `mon_net` network so Prometheus
-can reach them. Or you can attach the `mon_prometheus` service to the networks where your services are running.
-
-Once your services are reachable by Prometheus you can add the dns name and port of those services to the
-Prometheus config using the `JOBS` environment variable:
-
-```yaml
-  prometheus:
-    image: stefanprodan/swarmprom-prometheus
-    environment:
-      - JOBS=mongo-exporter:9216 kafka-exporter:9216 redis-exporter:9216
-```
-
-## Monitoring production systems
-
-The swarmprom project is meant as a starting point in developing your own monitoring solution. Before running this
-in production you should consider building and publishing your own Prometheus, node exporter and alert manager
-images. Docker Swarm doesn't play well with locally built images, the first step would be to setup a secure Docker
-registry that your Swarm has access to and push the images there. Your CI system should assign version tags to each
-image. Don't rely on the latest tag for continuous deployments, Prometheus will soon reach v2 and the data store
-will not be backwards compatible with v1.x.
-
-Another thing you should consider is having redundancy for Prometheus and alert manager.
-You could run them as a service with two replicas pinned on different nodes, or even better,
-use a service like Weave Cloud Cortex to ship your metrics outside of your current setup.
-You can use Weave Cloud not only as a backup of your
-metrics database but you can also define alerts and use it as a data source for your Grafana dashboards.
-Having the alerting and monitoring system hosted on a different platform other than your production
-is good practice that will allow you to react quickly and efficiently when a major disaster strikes.
-
-Swarmprom comes with built-in [Weave Cloud](https://www.weave.works/product/cloud/) integration,
-what you need to do is run the weave-compose stack with your Weave service token:
-
-```bash
-TOKEN=<WEAVE-TOKEN> \
-ADMIN_USER=admin \
-ADMIN_PASSWORD=admin \
-docker stack deploy -c weave-compose.yml mon
-```
-
-This will deploy Weave Scope and Prometheus with Weave Cortex as remote write.
-The local retention is set to 24h so even if your internet connection drops you'll not lose data
-as Prometheus will retry pushing data to Weave Cloud when the connection is up again.
-
-You can define alerts and notifications routes in Weave Cloud in the same way you would do with alert manager.
-
-To use Grafana with Weave Cloud you have to reconfigure the Prometheus data source like this:
-
-* Name: Prometheus
-* Type: Prometheus
-* Url: https://cloud.weave.works/api/prom
-* Access: proxy
-* Basic auth: use your service token as password, the user value is ignored
-
-Weave Scope automatically generates a map of your application, enabling you to intuitively understand,
-monitor, and control your microservices based application.
-You can view metrics, tags and metadata of the running processes, containers and hosts.
-Scope offers remote access to the Swarm’s nods and containers, making it easy to diagnose issues in real-time.
-
-![Scope](https://raw.githubusercontent.com/stefanprodan/swarmprom/master/grafana/screens/weave-scope.png)
-
-![Scope Hosts](https://raw.githubusercontent.com/stefanprodan/swarmprom/master/grafana/screens/weave-scope-hosts-v2.png)
