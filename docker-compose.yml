@@ -27,7 +27,7 @@ configs:
     file: ./grafana/dashboards/swarmprom-services-dash.json
   grafana_node_dashboard:
     file: ./grafana/dashboards/swarmprom-nodes-dash.json
-  dashboard:
+  dashboards:
     file: ./grafana/dashboards.yml
       
 
