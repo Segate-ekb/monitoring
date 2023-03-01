@@ -22,7 +22,7 @@ configs:
 
 services:
   dockerd-exporter:
-    image: caddy
+    image: stefanprodan/caddy
     networks:
       - net
     environment:
@@ -176,7 +176,7 @@ services:
           memory: 128M
 
   caddy:
-    image: caddy
+    image: stefanprodan/caddy
     ports:
       - "3000:3000"
       - "9090:9090"
