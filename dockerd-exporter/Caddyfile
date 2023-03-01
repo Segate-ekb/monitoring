@@ -1,6 +1,6 @@
 :9323 {
     reverse_proxy / {$DOCKER_GWBRIDGE_IP}:9323 {
-            transparent
+
         }
 
     errors stderr
