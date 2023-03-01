@@ -86,40 +86,41 @@ services:
         reservations:
           memory: 64M
 
-  alertmanager:
-    image: stefanprodan/swarmprom-alertmanager:v0.14.0
-    networks:
-      - net
-    environment:
-      - SLACK_URL=${SLACK_URL:-https://hooks.slack.com/services/TOKEN}
-      - SLACK_CHANNEL=${SLACK_CHANNEL:-general}
-      - SLACK_USER=${SLACK_USER:-alertmanager}
-    command:
-      - '--config.file=/etc/alertmanager/alertmanager.yml'
-      - '--storage.path=/alertmanager'
-    volumes:
-      - alertmanager:/alertmanager
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          - node.role == manager
-      resources:
-        limits:
-          memory: 128M
-        reservations:
-          memory: 64M
+# Алерты я предлагаю настраивать через Grafana, Но если кому-то нужно, то раскомментируйте эту область.
+  # alertmanager:
+  #   image: stefanprodan/swarmprom-alertmanager:v0.14.0
+  #   networks:
+  #     - net
+  #   environment:
+  #     - SLACK_URL=${SLACK_URL:-https://hooks.slack.com/services/TOKEN}
+  #     - SLACK_CHANNEL=${SLACK_CHANNEL:-general}
+  #     - SLACK_USER=${SLACK_USER:-alertmanager}
+  #   command:
+  #     - '--config.file=/etc/alertmanager/alertmanager.yml'
+  #     - '--storage.path=/alertmanager'
+  #   volumes:
+  #     - alertmanager:/alertmanager
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
+  #     placement:
+  #       constraints:
+  #         - node.role == manager
+  #     resources:
+  #       limits:
+  #         memory: 128M
+  #       reservations:
+  #         memory: 64M
 
-  unsee:
-    image: cloudflare/unsee:v0.8.0
-    networks:
-      - net
-    environment:
-      - "ALERTMANAGER_URIS=default:http://alertmanager:9093"
-    deploy:
-      mode: replicated
-      replicas: 1
+  # unsee:
+  #   image: cloudflare/unsee:v0.8.0
+  #   networks:
+  #     - net
+  #   environment:
+  #     - "ALERTMANAGER_URIS=default:http://alertmanager:9093"
+  #   deploy:
+  #     mode: replicated
+  #     replicas: 1
 
   node-exporter:
     image: stefanprodan/swarmprom-node-exporter:v0.16.0
@@ -166,7 +167,8 @@ services:
       replicas: 1
       placement:
         constraints:
-          - node.role == manager
+        # Если на менеджере нет достаточного количества ресурсов - предлагаю разместить на воркерах
+          - node.role == worker
       resources:
         limits:
           memory: 2048M
