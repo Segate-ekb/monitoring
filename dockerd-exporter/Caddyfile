@@ -3,6 +3,5 @@
 
         }
 
-    handle_errors stderr
     tls off
 }

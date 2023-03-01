@@ -3,7 +3,7 @@
 
         }
 
-    handle_errors stderr
+    
     tls off
 }
 
@@ -12,7 +12,7 @@
 
         }
 
-    handle_errors stderr
+    
     tls off
 }
 
@@ -21,7 +21,7 @@
 
         }
 
-    handle_errors stderr
+    
     tls off
 }
 
@@ -30,7 +30,7 @@
             websocket
         }
 
-    handle_errors stderr
+    
     tls off
 }
 
