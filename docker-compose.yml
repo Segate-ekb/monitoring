@@ -21,6 +21,13 @@ configs:
     file: ./prometheus/rules/swarm_task.rules.yml
   prometheus:
     file: ./prometheus/conf/prometheus.yml  
+  grafana_datasource:
+    file: ./grafana/datasources/prometheus.yaml
+  grafana_service_dashboard:
+    file: ./grafana/dashboards/swarmprom-services-dash.json
+  grafana_node_dashboard:
+    file: ./grafana/dashboards/swarmprom-nodes-dash.json
+      
 
 services:
   dockerd-exporter:
@@ -76,6 +83,13 @@ services:
       #- GF_SMTP_PASSWORD=${GF_SMTP_PASSWORD}
     volumes:
       - grafana:/var/lib/grafana
+    configs:
+      - source: grafana_datasource
+        target:  /etc/grafana/provisioning/datasources/prometheus.yml  
+      - source: grafana_service_dashboard
+        target:  /etc/grafana/dashboards/swarmprom-services-dash.json 
+      - source: grafana_node_dashboard
+        target:  /etc/grafana/dashboards/swarmprom-nodes-dash.json     
     deploy:
       mode: replicated
       replicas: 1
